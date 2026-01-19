@@ -41,7 +41,6 @@
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
 
-        /* Mobile Sidebar Overlay */
         #sidebar-overlay {
             display: none;
             position: fixed;
@@ -63,7 +62,6 @@
             }
         }
 
-        /* Responsive Table */
         .table-container {
             width: 100%;
             overflow-x: auto;
@@ -78,17 +76,15 @@
         }
 
         input, select, textarea {
-            font-size: 16px !important; /* Mencegah auto-zoom di iOS */
+            font-size: 16px !important;
         }
     </style>
 </head>
 <body class="text-slate-800">
 
-    <!-- Overlay untuk Mobile -->
     <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
         <aside id="sidebar" class="fixed lg:static w-72 h-full bg-slate-900 text-slate-300 flex flex-col z-50">
             <div class="p-6 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -134,9 +130,7 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 flex flex-col min-w-0">
-            <!-- Navbar -->
             <header class="h-16 bg-white border-b flex items-center justify-between px-4 lg:px-8 flex-shrink-0 sticky top-0 z-30">
                 <div class="flex items-center gap-4">
                     <button onclick="toggleSidebar()" class="lg:hidden p-2 bg-slate-50 rounded-lg text-slate-600">
@@ -156,7 +150,6 @@
 
             <div class="p-4 lg:p-8 flex-1 overflow-y-auto">
                 
-                <!-- Tab: Dashboard -->
                 <section id="content-dashboard" class="tab-content active space-y-6">
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                         <div class="pro-card p-4 lg:p-6 border-l-4 border-l-emerald-500">
@@ -213,12 +206,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <p class="mt-6 text-[9px] opacity-40 italic">Data dihitung berdasarkan selisih netto kirim ke PKS dan input koreksi manual.</p>
                         </div>
                     </div>
                 </section>
 
-                <!-- Tab: Pembelian -->
                 <section id="content-pembelian" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                         <div class="xl:col-span-4 pro-card p-6">
@@ -254,7 +245,6 @@
                     </div>
                 </section>
 
-                <!-- Tab: Pengiriman -->
                 <section id="content-pengiriman" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                         <div class="xl:col-span-4 pro-card p-6 h-fit">
@@ -286,7 +276,6 @@
                     </div>
                 </section>
 
-                <!-- Tab: Hasil PKS (Updated with detailed calculation) -->
                 <section id="content-penjualan" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                         <div class="xl:col-span-4 pro-card p-6 h-fit">
@@ -303,7 +292,6 @@
                                     <div><label class="text-[10px] font-bold text-slate-400 uppercase">Pot %</label><input type="number" id="jual-pot-pct" step="0.1" value="0" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcJual()"></div>
                                 </div>
                                 <div><label class="text-[10px] font-bold text-slate-400 uppercase">Harga PKS (Rp/Kg)</label><input type="number" id="jual-harga" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm font-bold text-indigo-700" oninput="calcJual()" required></div>
-                                
                                 <div class="space-y-2">
                                     <div class="flex justify-between text-[10px] px-1 font-bold text-slate-400 uppercase">
                                         <span>Netto Akhir PKS:</span>
@@ -330,7 +318,6 @@
                     </div>
                 </section>
 
-                <!-- Tab: Lossis -->
                 <section id="content-lossis" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                         <div class="xl:col-span-4 pro-card p-6 h-fit">
@@ -361,7 +348,6 @@
                     </div>
                 </section>
 
-                <!-- Tab: Keuangan -->
                 <section id="content-keuangan" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         <div class="pro-card p-6 h-fit"><form onsubmit="handleForm(event, 'modal')" class="space-y-4">
@@ -375,7 +361,6 @@
                     </div>
                 </section>
 
-                <!-- Tab: Operasional -->
                 <section id="content-operasional" class="tab-content">
                     <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         <div class="pro-card p-6 h-fit"><form onsubmit="handleForm(event, 'operasional')" class="space-y-4">
@@ -388,12 +373,10 @@
                         <div class="xl:col-span-3 pro-card"><div class="table-container"><table class="w-full text-xs"><tbody id="list-operasional" class="divide-y"></tbody></table></div></div>
                     </div>
                 </section>
-
             </div>
         </main>
     </div>
 
-    <!-- Notification Toast -->
     <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 opacity-0 translate-y-4 transition-all duration-300 z-[100] w-[90%] max-w-xs">
         <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center justify-center gap-3 text-xs font-bold border border-white/10">
             <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
@@ -402,7 +385,6 @@
     </div>
 
     <script>
-        // State Management
         let db = JSON.parse(localStorage.getItem('tbs_pro_multi_device')) || {
             pembelian: [], pengiriman: [], penjualan: [], operasional: [], modal: [], lossis: []
         };
@@ -439,7 +421,7 @@
             document.getElementById('current-title').innerText = titles[tab];
             
             if(tab === 'penjualan') populateDOSelect();
-            if(window.innerWidth < 1024) toggleSidebar();
+            if(window.innerWidth < 1024 && document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
             updateDashboard();
         }
 
@@ -458,16 +440,16 @@
             }, 2500);
         }
 
-        // Logic Functions
         function calcPurchase() {
             const bruto = parseFloat(document.getElementById('beli-bruto').value) || 0;
             const tara = parseFloat(document.getElementById('beli-tara').value) || 0;
             const potPct = parseFloat(document.getElementById('beli-pot-pct').value) || 0;
             const harga = parseFloat(document.getElementById('beli-harga').value) || 0;
-            const netto = (bruto - tara) - ((bruto-tara) * (potPct/100));
-            const total = Math.round(netto * harga);
+            const netto1 = bruto - tara;
+            const nettoAkhir = netto1 - (netto1 * (potPct/100));
+            const total = Math.round(nettoAkhir * harga);
             document.getElementById('beli-total-label').innerText = formatRp(total);
-            return { netto, total };
+            return { netto: nettoAkhir, total: total };
         }
 
         function calcNetto(prefix) {
@@ -484,15 +466,11 @@
             const tara = parseFloat(document.getElementById('jual-tara').value) || 0;
             const potPct = parseFloat(document.getElementById('jual-pot-pct').value) || 0;
             const harga = parseFloat(document.getElementById('jual-harga').value) || 0;
-            
-            // Formula: (Brutto - Tara) - ((Brutto - Tara) * Pot%)
             const netto1 = Math.max(0, bruto - tara);
             const nettoAkhir = netto1 - (netto1 * (potPct / 100));
             const total = Math.round(nettoAkhir * harga);
-
             document.getElementById('jual-netto-label').innerText = nettoAkhir.toLocaleString() + ' Kg';
             document.getElementById('jual-total-label').innerText = formatRp(total);
-            
             return { netto: nettoAkhir, total: total };
         }
 
@@ -507,9 +485,7 @@
             const id = document.getElementById('jual-id-pengiriman').value;
             const item = db.pengiriman.find(x => x.id == id);
             if(item) {
-                // Set default bruto-tara berdasarkan data pengiriman awal
-                // User bisa menyesuaikan jika ada revisi timbangan dari PKS
-                document.getElementById('jual-bruto').value = item.netto; // Anggap netto kirim jadi bruto PKS sementara
+                document.getElementById('jual-bruto').value = item.netto;
                 document.getElementById('jual-tara').value = 0;
                 calcJual();
             }
@@ -551,8 +527,7 @@
                 const res = calcJual();
                 Object.assign(data, {
                     idKirim, tgl: new Date().toISOString().split('T')[0],
-                    netto: res.netto,
-                    total: res.total
+                    netto: res.netto, total: res.total
                 });
                 db.penjualan.push(data);
                 const kIdx = db.pengiriman.findIndex(x => x.id == idKirim);
@@ -592,7 +567,7 @@
         }
 
         function updateDashboard() {
-            const sum = (arr, key) => arr.reduce((a, b) => a + (b[key] || 0), 0);
+            const sum = (arr, key) => (arr || []).reduce((a, b) => a + (b[key] || 0), 0);
             const totalBeli = sum(db.pembelian, 'total');
             const totalJual = sum(db.penjualan, 'total');
             const totalOps = sum(db.operasional, 'amount');
@@ -625,16 +600,16 @@
         function updateUI() {
             const render = (id, data, tpl) => {
                 const el = document.getElementById(id);
-                if(el) el.innerHTML = data.slice().reverse().map(x => tpl(x)).join('');
+                if(el) el.innerHTML = (data || []).slice().reverse().map(x => tpl(x)).join('');
             };
 
             render('list-pembelian', db.pembelian, x => `
-                <tr class="hover:bg-slate-50 transition-colors">
+                <tr class="hover:bg-slate-50">
                     <td class="p-4">${x.tgl}</td>
-                    <td class="p-4 font-bold text-slate-700">${x.pemasok}</td>
+                    <td class="p-4 font-bold">${x.pemasok}</td>
                     <td class="p-4">${Math.round(x.netto).toLocaleString()} Kg</td>
                     <td class="p-4 font-bold text-emerald-600">${formatRp(x.total)}</td>
-                    <td class="p-4 text-center"><button onclick="deleteRecord('pembelian', ${x.id})" class="p-2 text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                    <td class="p-4 text-center"><button onclick="deleteRecord('pembelian', ${x.id})" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
                 </tr>
             `);
 
@@ -667,20 +642,43 @@
                 </tr>
             `);
 
-            render('list-modal', db.modal, x => `<tr><td class="p-3">${x.tgl}</td><td class="p-3 font-medium">${x.ket}</td><td class="p-3 text-right font-bold text-emerald-600">${formatRp(x.amount)}</td><td class="p-3 text-right"><button onclick="deleteRecord('modal', ${x.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="x-circle" class="w-4 h-4"></i></button></td></tr>`);
-            render('list-operasional', db.operasional, x => `<tr><td class="p-3">${x.tgl}</td><td class="p-3 font-medium">${x.ket}</td><td class="p-3 text-right font-bold text-red-600">${formatRp(x.amount)}</td><td class="p-3 text-right"><button onclick="deleteRecord('operasional', ${x.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="x-circle" class="w-4 h-4"></i></button></td></tr>`);
+            render('list-modal', db.modal, x => `<tr><td class="p-3">${x.tgl}</td><td class="p-3">${x.ket}</td><td class="p-3 text-right font-bold text-emerald-600">${formatRp(x.amount)}</td><td class="p-3 text-right"><button onclick="deleteRecord('modal', ${x.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="x-circle" class="w-4 h-4"></i></button></td></tr>`);
+            render('list-operasional', db.operasional, x => `<tr><td class="p-3">${x.tgl}</td><td class="p-3">${x.ket}</td><td class="p-3 text-right font-bold text-red-600">${formatRp(x.amount)}</td><td class="p-3 text-right"><button onclick="deleteRecord('operasional', ${x.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="x-circle" class="w-4 h-4"></i></button></td></tr>`);
 
             updateDashboard();
             lucide.createIcons();
         }
 
         function exportToExcel() {
-            const wb = XLSX.utils.book_new();
-            Object.keys(db).forEach(key => {
-                if(db[key].length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(db[key]), key.toUpperCase());
-            });
-            XLSX.writeFile(wb, `TBS_PRO_Full_Report.xlsx`);
-            notify("Laporan Diunduh!");
+            // Cek apakah ada data sama sekali
+            const hasData = Object.values(db).some(arr => arr.length > 0);
+            if (!hasData) {
+                notify("Gagal: Belum ada data untuk diekspor!");
+                return;
+            }
+
+            try {
+                const wb = XLSX.utils.book_new();
+                let addedAny = false;
+
+                Object.keys(db).forEach(key => {
+                    if (db[key] && db[key].length > 0) {
+                        const ws = XLSX.utils.json_to_sheet(db[key]);
+                        XLSX.utils.book_append_sheet(wb, ws, key.toUpperCase());
+                        addedAny = true;
+                    }
+                });
+
+                if (addedAny) {
+                    XLSX.writeFile(wb, `TBS_PRO_Full_Report.xlsx`);
+                    notify("Laporan Diunduh!");
+                } else {
+                    notify("Gagal: Tidak ada sheet yang valid!");
+                }
+            } catch (err) {
+                console.error("Export error:", err);
+                notify("Terjadi kesalahan saat mengekspor data.");
+            }
         }
     </script>
 </body>
