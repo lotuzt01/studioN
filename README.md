@@ -6,6 +6,7 @@
     <title>PalmCore ERP - Finance & RAM Sawit</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
@@ -24,7 +25,7 @@
                 <div class="bg-emerald-600 p-2 rounded-xl text-white"><i class="fas fa-chart-line text-xl"></i></div>
                 <span class="font-bold text-xl hidden lg:block text-emerald-900">Palm<span class="text-emerald-500">Finance</span></span>
             </div>
-            <div class="space-y-1 flex-1">
+            <div class="space-y-1 flex-1 overflow-y-auto">
                 <button onclick="navTo('dashboard')" id="nav-dashboard" class="nav-btn active w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-th-large w-5"></i><span class="font-bold hidden lg:block text-sm">Dashboard</span>
                 </button>
@@ -37,7 +38,7 @@
                 <button onclick="navTo('biaya')" id="nav-biaya" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-wallet w-5"></i><span class="font-bold hidden lg:block text-sm">Biaya & Modal</span>
                 </button>
-                <div class="pt-4 pb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden lg:block">Laporan Keuangan</div>
+                <div class="pt-4 pb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden lg:block text-center lg:text-left">Laporan Keuangan</div>
                 <button onclick="navTo('laba-rugi')" id="nav-laba-rugi" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
                     <i class="fas fa-file-invoice-dollar w-5"></i><span class="font-bold hidden lg:block text-sm">Laba / Rugi</span>
                 </button>
@@ -48,19 +49,26 @@
                     <i class="fas fa-coins w-5"></i><span class="font-bold hidden lg:block text-sm">Perubahan Modal</span>
                 </button>
             </div>
+
+            <!-- Export Button -->
+            <div class="mt-auto pt-6 border-t border-slate-100">
+                <button onclick="exportFullReport()" class="w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold p-3 rounded-xl flex items-center justify-center gap-2 transition-all">
+                    <i class="fas fa-file-excel"></i> <span class="hidden lg:block">Export Excel</span>
+                </button>
+            </div>
         </div>
     </nav>
 
     <main class="ml-20 lg:ml-64 p-4 lg:p-8 no-print">
         
         <!-- DASHBOARD SECTION -->
-        <div id="page-dashboard" class="page-content">
+        <div id="page-dashboard" class="page-content text-center lg:text-left">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 class="text-3xl font-black text-slate-900">Dashboard Keuangan</h1>
-                    <p class="text-slate-500">Monitor arus kas dan stok RAM Anda secara real-time.</p>
+                    <p class="text-slate-500">Monitor arus kas dan stok RAM secara real-time.</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 justify-center lg:justify-end">
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 text-right min-w-[200px]">
                         <p class="text-[10px] font-black text-slate-400 uppercase">Saldo Kas Saat Ini</p>
                         <h3 id="dash-cash" class="text-xl font-black text-emerald-600">Rp 0</h3>
@@ -94,7 +102,7 @@
                 </div>
                 <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 overflow-hidden overflow-y-auto max-h-[400px]">
                     <h4 class="font-black mb-6 flex items-center gap-2"><i class="fas fa-history text-blue-500"></i> Transaksi Terakhir</h4>
-                    <div id="recent-logs" class="space-y-4"></div>
+                    <div id="recent-logs" class="space-y-4 text-left"></div>
                 </div>
             </div>
         </div>
@@ -191,7 +199,7 @@
 
         <!-- LAPORAN LABA RUGI -->
         <div id="page-laba-rugi" class="page-content hidden">
-            <div class="max-w-4xl mx-auto bg-white p-12 rounded-[3rem] shadow-xl border border-slate-200">
+            <div class="max-w-4xl mx-auto bg-white p-8 lg:p-12 rounded-[3rem] shadow-xl border border-slate-200">
                 <div class="text-center mb-12 border-b-2 border-slate-100 pb-8">
                     <h2 class="text-3xl font-black text-slate-900 uppercase">Laporan Laba / Rugi</h2>
                     <p class="text-slate-400 font-bold" id="pl-period">Periode Berjalan 2026</p>
@@ -220,21 +228,18 @@
 
                     <section>
                         <h4 class="font-black text-slate-400 border-b mb-4 uppercase text-xs tracking-widest">Beban Operasional</h4>
-                        <div id="pl-list-biaya" class="space-y-2">
-                            <!-- List Biaya Dynamic -->
-                        </div>
+                        <div id="pl-list-biaya" class="space-y-2"></div>
                         <div class="flex justify-between items-center py-2 font-bold italic">
                             <span>Total Beban Operasional</span>
                             <span id="pl-total-biaya" class="text-rose-600">Rp 0</span>
                         </div>
                     </section>
 
-                    <section class="bg-slate-900 text-white p-8 rounded-3xl mt-12 flex justify-between items-center">
+                    <section class="bg-slate-900 text-white p-6 lg:p-8 rounded-3xl mt-12 flex justify-between items-center">
                         <div>
-                            <h3 class="text-2xl font-black">LABA BERSIH</h3>
-                            <p class="text-slate-400 text-xs font-bold uppercase">Net Income</p>
+                            <h3 class="text-xl lg:text-2xl font-black uppercase">Laba Bersih</h3>
                         </div>
-                        <h2 id="pl-netto" class="text-4xl font-black text-emerald-400">Rp 0</h2>
+                        <h2 id="pl-netto" class="text-3xl lg:text-4xl font-black text-emerald-400">Rp 0</h2>
                     </section>
                 </div>
             </div>
@@ -243,8 +248,7 @@
         <!-- LAPORAN NERACA -->
         <div id="page-neraca" class="page-content hidden">
             <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Sisi Aktiva -->
-                <div class="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-200">
+                <div class="bg-white p-8 lg:p-10 rounded-[3rem] shadow-xl border border-slate-200">
                     <h3 class="text-2xl font-black mb-8 text-emerald-700">Aktiva (Aset)</h3>
                     <div class="space-y-6">
                         <div>
@@ -261,8 +265,7 @@
                     </div>
                 </div>
 
-                <!-- Sisi Pasiva -->
-                <div class="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-200">
+                <div class="bg-white p-8 lg:p-10 rounded-[3rem] shadow-xl border border-slate-200">
                     <h3 class="text-2xl font-black mb-8 text-blue-700">Pasiva (Kewajiban & Modal)</h3>
                     <div class="space-y-6">
                         <div>
@@ -282,7 +285,7 @@
 
         <!-- LAPORAN PERUBAHAN MODAL -->
         <div id="page-modal" class="page-content hidden">
-            <div class="max-w-4xl mx-auto bg-white p-12 rounded-[3rem] shadow-xl">
+            <div class="max-w-4xl mx-auto bg-white p-8 lg:p-12 rounded-[3rem] shadow-xl">
                  <div class="text-center mb-12">
                     <h2 class="text-3xl font-black text-slate-900 uppercase">Laporan Perubahan Modal</h2>
                     <p class="text-slate-400 font-bold">Periode Berakhir 2026</p>
@@ -311,13 +314,7 @@
     </main>
 
     <script>
-        // DB Schema
-        let db = JSON.parse(localStorage.getItem('palm_finance_db')) || {
-            tx: [], // All Transactions
-            stok: 0,
-            otw: 0,
-            cash: 0
-        };
+        let db = JSON.parse(localStorage.getItem('palm_finance_db')) || { tx: [] };
 
         const navTo = (id) => {
             document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
@@ -330,11 +327,10 @@
         const setToday = () => {
             const now = new Date().toISOString().split('T')[0];
             ['in-beli-date', 'in-jual-date', 'in-exp-date', 'in-modal-date'].forEach(i => {
-                if(document.getElementById(i)) document.getElementById(i).value = now;
+                const el = document.getElementById(i); if(el) el.value = now;
             });
         };
 
-        // Calculations
         function calcBeli() {
             const b = parseFloat(document.getElementById('in-beli-bruto').value) || 0;
             const t = parseFloat(document.getElementById('in-beli-tara').value) || 0;
@@ -377,7 +373,6 @@
                 data.nama = "Klaim PKS DO " + data.refId;
                 data.netto = r.netto; data.total = r.total;
                 data.ts = new Date(document.getElementById('in-jual-date').value).getTime();
-                // Susut calculation
                 const ref = db.tx.find(x => x.id == data.refId);
                 if(ref) data.susut = ref.netto - r.kotor;
             } else if(tipe === 'BIAYA') {
@@ -393,25 +388,21 @@
 
             db.tx.unshift(data);
             localStorage.setItem('palm_finance_db', JSON.stringify(db));
-            renderAll();
-            setToday();
-            alert("Transaksi Berhasil Disimpan!");
+            renderAll(); setToday();
+            alert("Berhasil!");
         }
 
         function renderAll() {
             let stok=0, otw=0, piutang=0, susut=0, beliRp=0, jualRp=0, biayaRp=0, kas=0, modalRp=0, priveRp=0;
             const claimed = db.tx.filter(x => x.tipe === 'JUAL').map(x => x.refId);
             
-            // Financial aggregation
             db.tx.forEach(t => {
                 if(t.tipe === 'BELI') {
-                    stok += t.netto; beliRp += t.total; kas -= t.total;
-                    // Mock: Auto mark as OTW (simplification)
-                    stok -= t.netto; otw += t.netto;
+                    beliRp += t.total; kas -= t.total;
+                    if(!claimed.includes(t.id.toString())) otw += t.netto;
                 }
                 if(t.tipe === 'JUAL') {
-                    otw -= db.tx.find(x => x.id == t.refId)?.netto || 0; // Remove from OTW
-                    jualRp += t.total; piutang += t.total; // Piutang PKS
+                    jualRp += t.total; piutang += t.total;
                     if(t.susut) susut += t.susut;
                 }
                 if(t.tipe === 'BIAYA') { biayaRp += t.total; kas -= t.total; }
@@ -422,15 +413,14 @@
             });
 
             const labaBersih = jualRp - beliRp - biayaRp;
+            const estStokVal = (otw + stok) * 2000;
 
-            // Update UI Dashboard
             document.getElementById('dash-stok').innerText = stok.toLocaleString();
             document.getElementById('dash-otw').innerText = otw.toLocaleString();
             document.getElementById('dash-susut').innerText = susut.toLocaleString();
             document.getElementById('dash-cash').innerText = 'Rp ' + kas.toLocaleString();
             document.getElementById('dash-profit').innerText = 'Rp ' + labaBersih.toLocaleString();
 
-            // Update Laba Rugi
             document.getElementById('pl-jual').innerText = 'Rp ' + jualRp.toLocaleString();
             document.getElementById('pl-beli').innerText = '(Rp ' + beliRp.toLocaleString() + ')';
             document.getElementById('pl-laba-kotor').innerText = 'Rp ' + (jualRp - beliRp).toLocaleString();
@@ -443,27 +433,22 @@
                 plList.insertAdjacentHTML('beforeend', `<div class="flex justify-between py-1 text-sm"><span>${b.nama}</span><span>Rp ${b.total.toLocaleString()}</span></div>`);
             });
 
-            // Update Neraca
             document.getElementById('bl-kas').innerText = 'Rp ' + kas.toLocaleString();
-            document.getElementById('bl-stok').innerText = 'Rp ' + (stok * 2000).toLocaleString() + ' (Est.)';
-            document.getElementById('bl-otw').innerText = 'Rp ' + (otw * 2000).toLocaleString() + ' (Est.)';
+            document.getElementById('bl-stok').innerText = 'Rp ' + (stok * 2000).toLocaleString();
+            document.getElementById('bl-otw').innerText = 'Rp ' + (otw * 2000).toLocaleString();
             document.getElementById('bl-piutang').innerText = 'Rp ' + piutang.toLocaleString();
-            
-            const totalAktiva = kas + (stok * 2000) + (otw * 2000) + piutang;
-            document.getElementById('bl-total-aktiva').innerText = 'Rp ' + totalAktiva.toLocaleString();
+            document.getElementById('bl-total-aktiva').innerText = 'Rp ' + (kas + estStokVal + piutang).toLocaleString();
 
             document.getElementById('bl-modal-disetor').innerText = 'Rp ' + modalRp.toLocaleString();
             document.getElementById('bl-laba-berjalan').innerText = 'Rp ' + labaBersih.toLocaleString();
             document.getElementById('bl-prive').innerText = '(Rp ' + priveRp.toLocaleString() + ')';
             document.getElementById('bl-total-pasiva').innerText = 'Rp ' + (modalRp + labaBersih - priveRp).toLocaleString();
 
-            // Update Perubahan Modal
             document.getElementById('cm-awal').innerText = 'Rp ' + modalRp.toLocaleString();
             document.getElementById('cm-laba').innerText = '+ Rp ' + labaBersih.toLocaleString();
             document.getElementById('cm-prive').innerText = '- Rp ' + priveRp.toLocaleString();
             document.getElementById('cm-akhir').innerText = 'Rp ' + (modalRp + labaBersih - priveRp).toLocaleString();
 
-            // Update DO Selection
             const sel = document.getElementById('in-jual-ref');
             const curVal = sel.value;
             sel.innerHTML = '<option value="">-- Pilih DO Belum Diklaim --</option>';
@@ -472,24 +457,16 @@
             });
             sel.value = curVal;
 
-            // Logs
             const logs = document.getElementById('recent-logs');
             logs.innerHTML = '';
             db.tx.slice(0, 5).forEach(x => {
                 logs.insertAdjacentHTML('beforeend', `
                     <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                        <div>
-                            <p class="font-black text-sm">${x.nama}</p>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase">${x.tipe}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black text-sm ${x.tipe==='BELI'||x.tipe==='BIAYA'?'text-rose-600':'text-emerald-600'}">${x.total > 0 ? 'Rp '+x.total.toLocaleString() : '-'}</p>
-                            <p class="text-[10px] text-slate-400 font-bold">${new Date(x.ts).toLocaleDateString()}</p>
-                        </div>
+                        <div><p class="font-black text-sm">${x.nama}</p><p class="text-[10px] text-slate-400 uppercase font-bold">${x.tipe}</p></div>
+                        <div class="text-right"><p class="font-black text-sm ${x.tipe==='BELI'||x.tipe==='BIAYA'?'text-rose-600':'text-emerald-600'}">Rp ${x.total.toLocaleString()}</p><p class="text-[10px] text-slate-400 font-bold">${new Date(x.ts).toLocaleDateString()}</p></div>
                     </div>
                 `);
             });
-
             renderCharts();
         }
 
@@ -500,21 +477,72 @@
                 const d = new Date(); d.setDate(d.getDate() - i);
                 return d.toISOString().split('T')[0];
             }).reverse();
-
-            const data = last7Days.map(day => {
-                return db.tx.filter(x => x.tipe === 'BELI' && new Date(x.ts).toISOString().split('T')[0] === day)
-                            .reduce((a, b) => a + b.netto, 0);
-            });
-
+            const data = last7Days.map(day => db.tx.filter(x => x.tipe === 'BELI' && new Date(x.ts).toISOString().split('T')[0] === day).reduce((a, b) => a + b.netto, 0));
             if(chartBeli) chartBeli.destroy();
             chartBeli = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: ['H-6', 'H-5', 'H-4', 'H-3', 'H-2', 'H-1', 'Hari Ini'],
-                    datasets: [{ label: 'TBS Masuk (Kg)', data: data, backgroundColor: '#10b981', borderRadius: 10 }]
-                },
+                data: { labels: ['H-6','H-5','H-4','H-3','H-2','H-1','Hari Ini'], datasets: [{ label: 'Kg', data: data, backgroundColor: '#10b981', borderRadius: 10 }] },
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
+        }
+
+        // --- NEW: EXCEL EXPORT FEATURE ---
+        function exportFullReport() {
+            const wb = XLSX.utils.book_new();
+            
+            // 1. Sheet Laba Rugi
+            let plData = [
+                ["LAPORAN LABA RUGI"],
+                ["Periode:", new Date().toLocaleDateString()],
+                [],
+                ["Keterangan", "Nominal"],
+                ["Pendapatan Klaim PKS", parseFloat(document.getElementById('pl-jual').innerText.replace(/[^0-9]/g, ""))],
+                ["Beban Pembelian TBS", -parseFloat(document.getElementById('pl-beli').innerText.replace(/[^0-9]/g, ""))],
+                ["LABA KOTOR", parseFloat(document.getElementById('pl-laba-kotor').innerText.replace(/[^0-9]/g, ""))],
+                ["Total Biaya Operasional", -parseFloat(document.getElementById('pl-total-biaya').innerText.replace(/[^0-9]/g, ""))],
+                ["LABA BERSIH", parseFloat(document.getElementById('pl-netto').innerText.replace(/[^0-9]/g, ""))]
+            ];
+            const wsPL = XLSX.utils.aoa_to_sheet(plData);
+            XLSX.utils.book_append_sheet(wb, wsPL, "Laba Rugi");
+
+            // 2. Sheet Neraca
+            let blData = [
+                ["LAPORAN NERACA"],
+                ["AKTIVA", "", "PASIVA", ""],
+                ["Kas & Bank", parseFloat(document.getElementById('bl-kas').innerText.replace(/[^0-9]/g, "")), "Modal Disetor", parseFloat(document.getElementById('bl-modal-disetor').innerText.replace(/[^0-9]/g, ""))],
+                ["Stok RAM", parseFloat(document.getElementById('bl-stok').innerText.replace(/[^0-9]/g, "")), "Laba Berjalan", parseFloat(document.getElementById('bl-laba-berjalan').innerText.replace(/[^0-9]/g, ""))],
+                ["OTW PKS", parseFloat(document.getElementById('bl-otw').innerText.replace(/[^0-9]/g, "")), "Prive", -parseFloat(document.getElementById('bl-prive').innerText.replace(/[^0-9]/g, ""))],
+                ["Piutang PKS", parseFloat(document.getElementById('bl-piutang').innerText.replace(/[^0-9]/g, ""))],
+                ["TOTAL AKTIVA", parseFloat(document.getElementById('bl-total-aktiva').innerText.replace(/[^0-9]/g, "")), "TOTAL PASIVA", parseFloat(document.getElementById('bl-total-pasiva').innerText.replace(/[^0-9]/g, ""))]
+            ];
+            const wsBL = XLSX.utils.aoa_to_sheet(blData);
+            XLSX.utils.book_append_sheet(wb, wsBL, "Neraca");
+
+            // 3. Sheet Perubahan Modal
+            let cmData = [
+                ["LAPORAN PERUBAHAN MODAL"],
+                ["Keterangan", "Jumlah"],
+                ["Modal Awal", parseFloat(document.getElementById('cm-awal').innerText.replace(/[^0-9]/g, ""))],
+                ["Laba Bersih", parseFloat(document.getElementById('cm-laba').innerText.replace(/[^0-9]/g, ""))],
+                ["Prive", -parseFloat(document.getElementById('cm-prive').innerText.replace(/[^0-9]/g, ""))],
+                ["MODAL AKHIR", parseFloat(document.getElementById('cm-akhir').innerText.replace(/[^0-9]/g, ""))]
+            ];
+            const wsCM = XLSX.utils.aoa_to_sheet(cmData);
+            XLSX.utils.book_append_sheet(wb, wsCM, "Modal");
+
+            // 4. Sheet Jurnal Transaksi Detail
+            const journal = db.tx.map(x => ({
+                Tanggal: new Date(x.ts).toLocaleDateString(),
+                Tipe: x.tipe,
+                Keterangan: x.nama,
+                Netto: x.netto || 0,
+                Harga: x.h || 0,
+                Total: x.total
+            }));
+            const wsJournal = XLSX.utils.json_to_sheet(journal);
+            XLSX.utils.book_append_sheet(wb, wsJournal, "Detail Transaksi");
+
+            XLSX.writeFile(wb, `PalmCore_Full_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
         window.onload = () => { setToday(); renderAll(); };
