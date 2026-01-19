@@ -2,684 +2,591 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TBS PRO - Enterprise Responsive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PalmCore ERP - Full Reporting</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .glass-panel { background: white; border: 1px solid #e2e8f0; }
+        .nav-btn.active { background: #059669 !important; color: white !important; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.2); }
         
-        :root {
-            --primary: #059669;
-            --primary-dark: #064e3b;
-        }
-
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f8fafc;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .sidebar-link.active {
-            background: #10b981;
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-        }
-
-        #sidebar-overlay {
-            display: none;
+        .modal-overlay {
             position: fixed;
             inset: 0;
             background: rgba(0,0,0,0.5);
-            z-index: 40;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
         }
 
-        @media (max-width: 1024px) {
-            #sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease-in-out;
-            }
-            #sidebar.open {
-                transform: translateX(0);
-            }
-            #sidebar-overlay.open {
-                display: block;
-            }
-        }
-
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .pro-card {
-            background: white;
+        #custom-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            color: white;
+            padding: 1rem 2rem;
             border-radius: 1rem;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+            z-index: 999999;
         }
-
-        input, select, textarea {
-            font-size: 16px !important;
-        }
+        #custom-toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-700">
 
-    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="custom-toast">Pesan Notifikasi</div>
 
-    <div class="flex min-h-screen">
-        <aside id="sidebar" class="fixed lg:static w-72 h-full bg-slate-900 text-slate-300 flex flex-col z-50">
-            <div class="p-6 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
-                        <i data-lucide="leaf" class="text-white w-6 h-6"></i>
-                    </div>
-                    <h1 class="text-xl font-bold text-white tracking-tight">TBS PRO</h1>
-                </div>
-                <button onclick="toggleSidebar()" class="lg:hidden p-2 text-slate-400">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
+    <div id="delete-modal" class="modal-overlay">
+        <div class="bg-white p-8 rounded-3xl max-w-sm w-full mx-4 shadow-2xl text-center">
+            <div class="text-rose-500 mb-4"><i class="fas fa-exclamation-triangle text-5xl"></i></div>
+            <h3 class="text-xl font-black mb-2">Hapus Transaksi?</h3>
+            <p class="text-slate-500 text-sm mb-6">Data ini akan dihapus permanen.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 py-3 bg-slate-100 font-bold rounded-xl">Batal</button>
+                <button id="confirm-delete-btn" class="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl">Hapus</button>
             </div>
-            
-            <nav class="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-                <button onclick="showTab('dashboard')" id="btn-dashboard" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="layout-grid" class="w-5 h-5"></i> Dashboard
-                </button>
-                <button onclick="showTab('pembelian')" id="btn-pembelian" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i> Pembelian
-                </button>
-                <button onclick="showTab('pengiriman')" id="btn-pengiriman" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="truck" class="w-5 h-5"></i> Pengiriman
-                </button>
-                <button onclick="showTab('penjualan')" id="btn-penjualan" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="factory" class="w-5 h-5"></i> Hasil PKS
-                </button>
-                <button onclick="showTab('lossis')" id="btn-lossis" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="scale" class="w-5 h-5"></i> Edit Stok
-                </button>
-                <div class="h-[1px] bg-slate-800 my-4 mx-4"></div>
-                <button onclick="showTab('keuangan')" id="btn-keuangan" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="landmark" class="w-5 h-5"></i> Kas/Modal
-                </button>
-                <button onclick="showTab('operasional')" id="btn-operasional" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-semibold text-sm transition-all">
-                    <i data-lucide="receipt" class="w-5 h-5"></i> Operasional
-                </button>
-            </nav>
+        </div>
+    </div>
 
-            <div class="p-6">
-                <button onclick="exportToExcel()" class="w-full bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold border border-emerald-600/20 transition-all">
-                    <i data-lucide="download-cloud" class="w-4 h-4"></i> EXPORT DATA
-                </button>
-            </div>
-        </aside>
-
-        <main class="flex-1 flex flex-col min-w-0">
-            <header class="h-16 bg-white border-b flex items-center justify-between px-4 lg:px-8 flex-shrink-0 sticky top-0 z-30">
-                <div class="flex items-center gap-4">
-                    <button onclick="toggleSidebar()" class="lg:hidden p-2 bg-slate-50 rounded-lg text-slate-600">
-                        <i data-lucide="menu" class="w-6 h-6"></i>
-                    </button>
-                    <div>
-                        <h2 id="current-title" class="text-lg font-bold text-slate-900 leading-tight">Dashboard</h2>
-                    </div>
+    <div id="app-body">
+        <nav class="fixed left-0 top-0 h-full w-20 lg:w-64 bg-white border-r border-slate-200 z-50">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div class="bg-emerald-600 p-2 rounded-xl text-white"><i class="fas fa-leaf text-xl"></i></div>
+                    <span class="font-bold text-xl hidden lg:block text-emerald-900">PalmCore<span class="text-emerald-500">ERP</span></span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="hidden sm:block text-right">
-                        <p class="text-[10px] font-bold text-emerald-600 uppercase">TBS-PRO-v3</p>
-                    </div>
-                    <div class="w-8 h-8 bg-slate-100 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs">AD</div>
-                </div>
-            </header>
-
-            <div class="p-4 lg:p-8 flex-1 overflow-y-auto">
                 
-                <section id="content-dashboard" class="tab-content active space-y-6">
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-                        <div class="pro-card p-4 lg:p-6 border-l-4 border-l-emerald-500">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kas Akhir</p>
-                            <h3 id="dash-modal" class="text-sm lg:text-xl font-extrabold text-slate-900">Rp 0</h3>
-                        </div>
-                        <div class="pro-card p-4 lg:p-6 border-l-4 border-l-blue-500">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stok Gudang</p>
-                            <h3 id="dash-stok-akhir" class="text-sm lg:text-xl font-extrabold text-slate-900">0 Kg</h3>
-                        </div>
-                        <div class="pro-card p-4 lg:p-6 border-l-4 border-l-amber-500">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kirim PKS</p>
-                            <h3 id="dash-do-total" class="text-sm lg:text-xl font-extrabold text-slate-900">0 Kg</h3>
-                        </div>
-                        <div class="pro-card p-4 lg:p-6 border-l-4 border-l-indigo-600">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Profit</p>
-                            <h3 id="dash-profit" class="text-sm lg:text-xl font-extrabold text-emerald-600">Rp 0</h3>
-                        </div>
-                    </div>
+                <div class="space-y-2 flex-1">
+                    <button id="nav-dashboard" onclick="navTo('dashboard')" class="nav-btn active w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-chart-pie w-5"></i><span class="font-bold hidden lg:block text-sm">Dashboard</span>
+                    </button>
+                    <button id="nav-beli" onclick="navTo('beli')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-balance-scale w-5"></i><span class="font-bold hidden lg:block text-sm">Beli TBS</span>
+                    </button>
+                    <button id="nav-logistik" onclick="navTo('logistik')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-truck-loading w-5"></i><span class="font-bold hidden lg:block text-sm">Kirim DO</span>
+                    </button>
+                    <button id="nav-jual" onclick="navTo('jual')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-file-invoice-dollar w-5"></i><span class="font-bold hidden lg:block text-sm">Klaim PKS</span>
+                    </button>
+                    <button id="nav-biaya" onclick="navTo('biaya')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-money-bill-wave w-5"></i><span class="font-bold hidden lg:block text-sm">Biaya</span>
+                    </button>
+                    <button id="nav-laporan" onclick="navTo('laporan')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-list-alt w-5"></i><span class="font-bold hidden lg:block text-sm">Riwayat</span>
+                    </button>
+                    <button id="nav-rekap" onclick="navTo('rekap')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 transition-all">
+                        <i class="fas fa-file-contract w-5"></i><span class="font-bold hidden lg:block text-sm">Rekap Bulanan</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 pro-card p-6">
-                            <h4 class="font-bold mb-4 text-sm">Neraca Keuangan</h4>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                    <span class="text-xs text-slate-500">Omzet PKS</span>
-                                    <span id="lr-penjualan" class="text-sm font-bold">Rp 0</span>
+        <main class="ml-20 lg:ml-64 p-8 min-h-screen">
+            <!-- Dashboard -->
+            <div id="page-dashboard" class="page-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    <div class="glass-panel p-5 rounded-3xl border-b-4 border-emerald-500 shadow-sm">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stok RAM</p>
+                        <h2 id="stok-val" class="text-2xl font-black text-slate-800">0</h2>
+                        <span class="text-[10px] text-slate-400">Kg</span>
+                    </div>
+                    <div class="glass-panel p-5 rounded-3xl border-b-4 border-blue-500 shadow-sm">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Perjalanan (OTW)</p>
+                        <h2 id="otw-val" class="text-2xl font-black text-blue-600">0</h2>
+                        <span class="text-[10px] text-slate-400">Kg</span>
+                    </div>
+                    <div class="glass-panel p-5 rounded-3xl border-b-4 border-amber-500 shadow-sm">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Susut</p>
+                        <h2 id="shrink-val" class="text-2xl font-black text-amber-600">0 Kg</h2>
+                        <span id="shrink-kg-val" class="text-[10px] text-slate-400">Seluruh Periode</span>
+                    </div>
+                    <div class="glass-panel p-5 rounded-3xl border-b-4 border-rose-500 shadow-sm">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Biaya</p>
+                        <h2 id="biaya-val" class="text-xl font-black text-rose-600">Rp 0</h2>
+                    </div>
+                    <div class="bg-slate-900 p-5 rounded-3xl text-white shadow-xl">
+                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Est. Profit</p>
+                        <h2 id="profit-val" class="text-xl font-black text-emerald-400">Rp 0</h2>
+                    </div>
+                </div>
+                <div class="glass-panel p-8 rounded-3xl h-[400px] shadow-sm">
+                    <h3 class="font-bold text-slate-500 mb-4 text-xs uppercase tracking-widest">Volume Pembelian (Per Hari)</h3>
+                    <canvas id="chartView"></canvas>
+                </div>
+            </div>
+
+            <!-- Page Beli -->
+            <div id="page-beli" class="page-content hidden">
+                <div class="max-w-4xl mx-auto glass-panel p-8 rounded-[2rem] border-t-8 border-emerald-500 shadow-xl">
+                    <h3 class="font-black text-2xl text-emerald-900 mb-6">Input TBS Masuk (RAM)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="space-y-5">
+                            <input id="b-nama" type="text" placeholder="Nama Pemasok" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="b-bruto" type="number" oninput="hitungBeli()" placeholder="Brutto" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                                <input id="b-tara" type="number" oninput="hitungBeli()" placeholder="Potongan Tarra" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1 text-[9px] font-bold text-rose-400 uppercase">Pot %</span>
+                                    <input id="b-persen" type="number" oninput="hitungBeli()" value="3" class="w-full pt-6 pb-2 px-4 bg-rose-50 border-2 border-rose-100 rounded-2xl font-bold text-rose-700">
                                 </div>
-                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                    <span class="text-xs text-slate-500">HPP Pembelian</span>
-                                    <span id="lr-hpp" class="text-sm font-bold text-red-500">Rp 0</span>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                    <span class="text-xs text-slate-500">Operasional</span>
-                                    <span id="lr-ops" class="text-sm font-bold text-orange-500">Rp 0</span>
-                                </div>
-                                <div class="pt-4 border-t flex justify-between items-center">
-                                    <span class="font-bold text-sm">Profit Bersih</span>
-                                    <span id="lr-bersih" class="text-xl font-black text-emerald-600">Rp 0</span>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1 text-[9px] font-bold text-emerald-400 uppercase">Harga</span>
+                                    <input id="b-harga" type="number" oninput="hitungBeli()" placeholder="Rp" class="w-full pt-6 pb-2 px-4 bg-emerald-50 border-2 border-emerald-200 rounded-2xl font-bold text-emerald-700">
                                 </div>
                             </div>
+                            <input type="date" id="b-date" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm">
                         </div>
-                        <div class="pro-card p-6 bg-slate-900 text-white flex flex-col justify-between">
-                            <div>
-                                <h4 class="text-emerald-400 font-bold text-[10px] uppercase mb-4 tracking-tighter">Analisa Fisik Barang</h4>
-                                <div class="space-y-4">
-                                    <div>
-                                        <p class="text-[10px] opacity-50 uppercase mb-1 font-bold">Susut Kirim vs PKS</p>
-                                        <p id="total-susut" class="text-xl font-bold text-red-400">0 Kg</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] opacity-50 uppercase mb-1 font-bold">Koreksi Manual Lossis</p>
-                                        <p id="total-lossis" class="text-xl font-bold text-blue-400">0 Kg</p>
-                                    </div>
+                        <div class="bg-emerald-900 rounded-[2.5rem] p-10 text-white flex flex-col justify-center text-center">
+                            <h2 id="res-total" class="text-5xl font-black mb-4">Rp 0</h2>
+                            <p class="text-sm opacity-80 uppercase tracking-tighter">Netto Berat: <span id="res-netto" class="font-black">0</span> Kg</p>
+                            <button onclick="simpan('BELI')" class="w-full py-5 mt-10 bg-emerald-500 hover:bg-emerald-400 rounded-2xl font-black shadow-lg transition-all">SIMPAN TRANSAKSI</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Logistik -->
+            <div id="page-logistik" class="page-content hidden">
+                <div class="max-w-4xl mx-auto glass-panel p-8 rounded-[2rem] border-t-8 border-blue-500 shadow-xl">
+                    <h3 class="font-black text-2xl text-blue-900 mb-6">Logistik: Kirim TBS</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="space-y-5">
+                            <input id="l-do" type="text" placeholder="Nomor DO / Surat Jalan" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="l-supir" type="text" placeholder="Supir" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                                <input id="l-plat" type="text" placeholder="No. Polisi" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                            </div>
+                            <input id="l-pks" type="text" placeholder="PKS Tujuan" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="l-bruto" type="number" oninput="hitungLogistik()" placeholder="Brutto RAM" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                                <input id="l-tara" type="number" oninput="hitungLogistik()" placeholder="Tarra RAM" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                            </div>
+                            <input type="date" id="l-date" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm">
+                        </div>
+                        <div class="bg-blue-900 rounded-[2.5rem] p-10 text-white flex flex-col justify-center text-center">
+                            <h2 id="res-log-netto" class="text-6xl font-black mb-4">0</h2>
+                            <p class="text-sm uppercase font-bold tracking-widest text-blue-300">Kilogram (Berangkat)</p>
+                            <button onclick="simpan('LOGISTIK')" class="w-full py-5 mt-10 bg-blue-500 hover:bg-blue-400 rounded-2xl font-black shadow-lg transition-all">CATAT PENGIRIMAN</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Jual -->
+            <div id="page-jual" class="page-content hidden">
+                <div class="max-w-4xl mx-auto glass-panel p-8 rounded-[2rem] border-t-8 border-indigo-500 shadow-xl">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="font-black text-2xl text-indigo-900">Input Klaim Hasil PKS</h3>
+                        <select id="j-do-ref" onchange="autoFillDO()" class="p-2 bg-slate-100 border rounded-lg text-sm font-bold">
+                            <option value="">-- Hubungkan DO --</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="j-pabrik" type="text" placeholder="Nama PKS" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                                <input id="j-do-num" type="text" placeholder="No. DO" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="j-bruto" type="number" oninput="hitungJual()" placeholder="Brutto Pabrik" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                                <input id="j-tara" type="number" oninput="hitungJual()" placeholder="Tarra Pabrik" class="w-full p-4 bg-slate-50 border rounded-2xl">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="j-persen" type="number" oninput="hitungJual()" placeholder="Sortasi %" class="w-full p-4 bg-indigo-50 border rounded-2xl">
+                                <input id="j-harga" type="number" oninput="hitungJual()" placeholder="Harga Jual" class="w-full p-4 bg-indigo-50 border rounded-2xl">
+                            </div>
+                            <input type="date" id="j-date" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm">
+                            <div id="diff-box" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                                <div class="flex justify-between font-bold text-amber-700 text-xs mb-1">
+                                    <span>SELISIH MUATAN</span>
+                                    <span id="diff-percent">0%</span>
                                 </div>
+                                <div class="text-2xl font-black text-amber-900" id="diff-kg">0 Kg</div>
                             </div>
                         </div>
+                        <div class="bg-indigo-900 rounded-[2.5rem] p-10 text-white flex flex-col justify-center text-center">
+                            <h2 id="res-jual-total" class="text-5xl font-black mb-4">Rp 0</h2>
+                            <p class="text-sm opacity-80 uppercase">Netto PKS: <span id="res-jual-netto" class="font-black">0</span> Kg</p>
+                            <button onclick="simpan('JUAL')" class="w-full py-5 mt-10 bg-indigo-500 hover:bg-indigo-400 rounded-2xl font-black shadow-lg transition-all">SIMPAN PENJUALAN</button>
+                        </div>
                     </div>
-                </section>
+                </div>
+            </div>
 
-                <section id="content-pembelian" class="tab-content">
-                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                        <div class="xl:col-span-4 pro-card p-6">
-                            <h3 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4 text-emerald-500"></i> Form Pembelian</h3>
-                            <form onsubmit="handleForm(event, 'pembelian')" class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tanggal</label><input type="date" id="beli-tgl" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" required></div>
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Pemasok</label><input type="text" id="beli-pemasok" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" placeholder="Nama Petani" required></div>
-                                </div>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Brutto</label><input type="number" id="beli-bruto" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcPurchase()" required></div>
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tara</label><input type="number" id="beli-tara" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcPurchase()" required></div>
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Pot %</label><input type="number" id="beli-pot-pct" step="0.1" value="0" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcPurchase()"></div>
-                                </div>
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Harga (Rp/Kg)</label><input type="number" id="beli-harga" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm font-bold" oninput="calcPurchase()" required></div>
-                                <div class="p-3 bg-emerald-50 rounded-lg flex justify-between">
-                                    <span class="text-[10px] font-bold text-emerald-600 uppercase">Total Bayar</span>
-                                    <span id="beli-total-label" class="font-bold text-emerald-700">Rp 0</span>
-                                </div>
-                                <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg text-sm shadow-md">Simpan Data</button>
-                            </form>
-                        </div>
-                        <div class="xl:col-span-8 pro-card">
-                            <div class="table-container">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b">
-                                        <tr><th class="p-4">Tanggal</th><th class="p-4">Pemasok</th><th class="p-4">Netto</th><th class="p-4">Total</th><th class="p-4 text-center">Aksi</th></tr>
-                                    </thead>
-                                    <tbody id="list-pembelian" class="divide-y"></tbody>
-                                </table>
-                            </div>
-                        </div>
+            <!-- Page Laporan Riwayat -->
+            <div id="page-laporan" class="page-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black">Riwayat Transaksi</h2>
+                    <button onclick="exportExcel()" class="bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm font-bold">Export Excel</button>
+                </div>
+                <div class="glass-panel rounded-3xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 border-b">
+                                <tr>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400">Tanggal</th>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400">Tipe</th>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400">Keterangan</th>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400 text-right">Netto (Kg)</th>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400 text-right">Susut (Kg)</th>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400 text-right">Nilai Rp</th>
+                                    <th class="p-4 uppercase text-[10px] font-bold text-slate-400 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-log" class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
-                </section>
+                </div>
+            </div>
 
-                <section id="content-pengiriman" class="tab-content">
-                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                        <div class="xl:col-span-4 pro-card p-6 h-fit">
-                            <h3 class="font-bold mb-4 flex items-center gap-2 text-orange-600"><i data-lucide="truck" class="w-4 h-4"></i> Logistik DO</h3>
-                            <form onsubmit="handleForm(event, 'pengiriman')" class="space-y-4">
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tanggal Kirim</label><input type="date" id="kirim-tgl" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" required></div>
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Nama PKS Tujuan</label><input type="text" id="kirim-pks" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" placeholder="PKS XXX" required></div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Brutto</label><input type="number" id="kirim-bruto" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcNetto('kirim')" required></div>
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tara</label><input type="number" id="kirim-tara" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcNetto('kirim')" required></div>
-                                </div>
-                                <div class="p-3 bg-slate-100 rounded-lg flex justify-between items-center">
-                                    <span class="text-[10px] font-bold uppercase text-slate-500">Netto Kirim</span>
-                                    <span id="kirim-netto-label" class="font-bold text-orange-600">0 Kg</span>
-                                </div>
-                                <button type="submit" class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg text-sm shadow-md uppercase">Kirim Barang</button>
-                            </form>
-                        </div>
-                        <div class="xl:col-span-8 pro-card overflow-hidden">
-                            <div class="table-container">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b">
-                                        <tr><th class="p-4">Tanggal</th><th class="p-4">PKS</th><th class="p-4">Netto</th><th class="p-4">Status</th><th class="p-4 text-right">Aksi</th></tr>
-                                    </thead>
-                                    <tbody id="list-pengiriman" class="divide-y"></tbody>
-                                </table>
-                            </div>
-                        </div>
+            <!-- Page Rekap Bulanan -->
+            <div id="page-rekap" class="page-content hidden">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">Rekapitulasi Laporan Bulanan</h2>
+                        <p class="text-slate-400 text-sm">Rangkuman kinerja pembelian, penjualan, dan operasional.</p>
                     </div>
-                </section>
+                    <div class="flex gap-2">
+                        <select id="rekap-year" onchange="renderRekap()" class="p-3 bg-white border rounded-xl font-bold">
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </div>
+                </div>
 
-                <section id="content-penjualan" class="tab-content">
-                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                        <div class="xl:col-span-4 pro-card p-6 h-fit">
-                            <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-600"><i data-lucide="check-circle" class="w-4 h-4"></i> Cairkan DO (PKS)</h3>
-                            <form onsubmit="handleForm(event, 'penjualan')" class="space-y-4">
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Pilih DO Kirim</label>
-                                    <select id="jual-id-pengiriman" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" onchange="fillJualInfo()" required>
-                                        <option value="">-- Pilih DO Aktif --</option>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Brutto</label><input type="number" id="jual-bruto" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcJual()" required></div>
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tara</label><input type="number" id="jual-tara" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcJual()" required></div>
-                                    <div><label class="text-[10px] font-bold text-slate-400 uppercase">Pot %</label><input type="number" id="jual-pot-pct" step="0.1" value="0" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" oninput="calcJual()"></div>
-                                </div>
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Harga PKS (Rp/Kg)</label><input type="number" id="jual-harga" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm font-bold text-indigo-700" oninput="calcJual()" required></div>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between text-[10px] px-1 font-bold text-slate-400 uppercase">
-                                        <span>Netto Akhir PKS:</span>
-                                        <span id="jual-netto-label">0 Kg</span>
-                                    </div>
-                                    <div class="p-3 bg-indigo-50 rounded-lg flex justify-between items-center">
-                                        <span class="text-[10px] font-bold uppercase text-indigo-600">Total Cair</span>
-                                        <span id="jual-total-label" class="font-bold text-indigo-700">Rp 0</span>
-                                    </div>
-                                </div>
-                                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg text-sm shadow-md uppercase">Finalisasi Penjualan</button>
-                            </form>
-                        </div>
-                        <div class="xl:col-span-8 pro-card overflow-hidden">
-                            <div class="table-container">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b">
-                                        <tr><th class="p-4">Tanggal</th><th class="p-4">Netto PKS</th><th class="p-4">Total Cair</th><th class="p-4 text-right">Aksi</th></tr>
-                                    </thead>
-                                    <tbody id="list-penjualan" class="divide-y"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <div class="grid grid-cols-1 gap-6" id="rekap-container">
+                    <!-- Cards per Month will be rendered here -->
+                </div>
+            </div>
 
-                <section id="content-lossis" class="tab-content">
-                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                        <div class="xl:col-span-4 pro-card p-6 h-fit">
-                            <h3 class="font-bold mb-4 flex items-center gap-2 text-blue-600"><i data-lucide="scale" class="w-4 h-4"></i> Edit Stok Manual</h3>
-                            <form onsubmit="handleForm(event, 'lossis')" class="space-y-4">
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tanggal</label><input type="date" id="lossis-tgl" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" required></div>
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Tipe</label>
-                                    <select id="lossis-tipe" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm">
-                                        <option value="kurang">Kurangi Stok (Lossis)</option>
-                                        <option value="tambah">Tambah Stok (Koreksi)</option>
-                                    </select>
-                                </div>
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Berat (Kg)</label><input type="number" id="lossis-kg" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm font-bold" required></div>
-                                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Keterangan</label><textarea id="lossis-ket" class="w-full bg-slate-50 border p-2.5 rounded-lg text-sm" placeholder="Alasan perubahan stok..."></textarea></div>
-                                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg text-sm">Update Fisik Stok</button>
-                            </form>
-                        </div>
-                        <div class="xl:col-span-8 pro-card overflow-hidden">
-                            <div class="table-container">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b">
-                                        <tr><th class="p-4">Tanggal</th><th class="p-4">Tipe</th><th class="p-4">Berat</th><th class="p-4">Alasan</th><th class="p-4 text-right">Aksi</th></tr>
-                                    </thead>
-                                    <tbody id="list-lossis" class="divide-y"></tbody>
-                                </table>
-                            </div>
-                        </div>
+            <!-- Page Biaya -->
+            <div id="page-biaya" class="page-content hidden">
+                <div class="max-w-xl mx-auto glass-panel p-8 rounded-[2rem] border-t-8 border-rose-500 shadow-xl">
+                    <h3 class="font-black text-2xl mb-6 text-rose-900 text-center">Catat Biaya Operasional</h3>
+                    <div class="space-y-5">
+                        <input id="c-ket" type="text" placeholder="Keterangan (Gaji/Bensin/Sewa)" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                        <input id="c-nominal" type="number" placeholder="Nominal Rp" class="w-full p-4 bg-rose-50 border-2 border-rose-100 rounded-2xl font-bold text-rose-700">
+                        <input type="date" id="c-date" class="w-full p-4 bg-slate-50 border rounded-2xl text-sm">
+                        <button onclick="simpan('BIAYA')" class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-lg transition-all">SIMPAN BIAYA</button>
                     </div>
-                </section>
-
-                <section id="content-keuangan" class="tab-content">
-                    <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                        <div class="pro-card p-6 h-fit"><form onsubmit="handleForm(event, 'modal')" class="space-y-4">
-                            <h3 class="font-bold text-sm">Input Kas/Modal</h3>
-                            <input type="date" id="modal-tgl" class="w-full border p-2 rounded text-sm">
-                            <input type="text" id="modal-ket" class="w-full border p-2 rounded text-sm" placeholder="Keterangan">
-                            <input type="number" id="modal-amount" class="w-full border p-2 rounded text-sm" placeholder="Rp Jumlah">
-                            <button class="w-full bg-emerald-600 text-white py-2 rounded font-bold text-xs uppercase">Simpan Kas</button>
-                        </form></div>
-                        <div class="xl:col-span-3 pro-card"><div class="table-container"><table class="w-full text-xs"><tbody id="list-modal" class="divide-y"></tbody></table></div></div>
-                    </div>
-                </section>
-
-                <section id="content-operasional" class="tab-content">
-                    <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                        <div class="pro-card p-6 h-fit"><form onsubmit="handleForm(event, 'operasional')" class="space-y-4">
-                            <h3 class="font-bold text-sm">Input Biaya Ops</h3>
-                            <input type="date" id="ops-tgl" class="w-full border p-2 rounded text-sm">
-                            <input type="text" id="ops-ket" class="w-full border p-2 rounded text-sm" placeholder="Bensin/Gaji">
-                            <input type="number" id="ops-amount" class="w-full border p-2 rounded text-sm" placeholder="Rp Jumlah">
-                            <button class="w-full bg-red-600 text-white py-2 rounded font-bold text-xs uppercase">Simpan Biaya</button>
-                        </form></div>
-                        <div class="xl:col-span-3 pro-card"><div class="table-container"><table class="w-full text-xs"><tbody id="list-operasional" class="divide-y"></tbody></table></div></div>
-                    </div>
-                </section>
+                </div>
             </div>
         </main>
     </div>
 
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 opacity-0 translate-y-4 transition-all duration-300 z-[100] w-[90%] max-w-xs">
-        <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center justify-center gap-3 text-xs font-bold border border-white/10">
-            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
-            <span id="toast-msg"></span>
-        </div>
-    </div>
-
     <script>
-        let db = JSON.parse(localStorage.getItem('tbs_pro_multi_device')) || {
-            pembelian: [], pengiriman: [], penjualan: [], operasional: [], modal: [], lossis: []
-        };
+        // Global State
+        let dataStore = JSON.parse(localStorage.getItem('sawit_erp_data_v2')) || [];
+        let pendingDeleteIdx = null;
 
-        const titles = {
-            dashboard: "Dashboard", pembelian: "Pembelian TBS", pengiriman: "Logistik (DO)",
-            penjualan: "Hasil PKS", lossis: "Koreksi Stok", keuangan: "Kas & Modal", operasional: "Biaya Ops"
-        };
+        // Configuration
+        const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-        window.onload = () => {
-            lucide.createIcons();
-            initDates();
-            updateUI();
-            showTab('dashboard');
-        };
-
-        function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            const ol = document.getElementById('sidebar-overlay');
-            sb.classList.toggle('open');
-            ol.classList.toggle('open');
-        }
-
-        function initDates() {
+        // Init Helpers
+        function setTodayDates() {
             const today = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[type="date"]').forEach(el => el.value = today);
-        }
-
-        function showTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
-            document.getElementById('content-' + tab).classList.add('active');
-            document.getElementById('btn-' + tab).classList.add('active');
-            document.getElementById('current-title').innerText = titles[tab];
-            
-            if(tab === 'penjualan') populateDOSelect();
-            if(window.innerWidth < 1024 && document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
-            updateDashboard();
-        }
-
-        function formatRp(num) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
-        }
-
-        function notify(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
-            t.classList.replace('opacity-0', 'opacity-100');
-            t.classList.replace('translate-y-4', 'translate-y-0');
-            setTimeout(() => {
-                t.classList.replace('opacity-100', 'opacity-0');
-                t.classList.replace('translate-y-0', 'translate-y-4');
-            }, 2500);
-        }
-
-        function calcPurchase() {
-            const bruto = parseFloat(document.getElementById('beli-bruto').value) || 0;
-            const tara = parseFloat(document.getElementById('beli-tara').value) || 0;
-            const potPct = parseFloat(document.getElementById('beli-pot-pct').value) || 0;
-            const harga = parseFloat(document.getElementById('beli-harga').value) || 0;
-            const netto1 = bruto - tara;
-            const nettoAkhir = netto1 - (netto1 * (potPct/100));
-            const total = Math.round(nettoAkhir * harga);
-            document.getElementById('beli-total-label').innerText = formatRp(total);
-            return { netto: nettoAkhir, total: total };
-        }
-
-        function calcNetto(prefix) {
-            const bruto = parseFloat(document.getElementById(prefix + '-bruto').value) || 0;
-            const tara = parseFloat(document.getElementById(prefix + '-tara').value) || 0;
-            const netto = Math.max(0, bruto - tara);
-            const label = document.getElementById(prefix + '-netto-label');
-            if(label) label.innerText = netto.toLocaleString() + ' Kg';
-            return netto;
-        }
-
-        function calcJual() {
-            const bruto = parseFloat(document.getElementById('jual-bruto').value) || 0;
-            const tara = parseFloat(document.getElementById('jual-tara').value) || 0;
-            const potPct = parseFloat(document.getElementById('jual-pot-pct').value) || 0;
-            const harga = parseFloat(document.getElementById('jual-harga').value) || 0;
-            const netto1 = Math.max(0, bruto - tara);
-            const nettoAkhir = netto1 - (netto1 * (potPct / 100));
-            const total = Math.round(nettoAkhir * harga);
-            document.getElementById('jual-netto-label').innerText = nettoAkhir.toLocaleString() + ' Kg';
-            document.getElementById('jual-total-label').innerText = formatRp(total);
-            return { netto: nettoAkhir, total: total };
-        }
-
-        function populateDOSelect() {
-            const s = document.getElementById('jual-id-pengiriman');
-            const active = db.pengiriman.filter(x => x.status === 'Kirim');
-            s.innerHTML = '<option value="">-- Pilih DO Aktif --</option>' + 
-                active.map(x => `<option value="${x.id}">${x.pks} (${x.netto}Kg)</option>`).join('');
-        }
-
-        function fillJualInfo() {
-            const id = document.getElementById('jual-id-pengiriman').value;
-            const item = db.pengiriman.find(x => x.id == id);
-            if(item) {
-                document.getElementById('jual-bruto').value = item.netto;
-                document.getElementById('jual-tara').value = 0;
-                calcJual();
-            }
-        }
-
-        function handleForm(e, type) {
-            e.preventDefault();
-            const data = { id: Date.now() };
-
-            if(type === 'pembelian') {
-                const res = calcPurchase();
-                Object.assign(data, {
-                    tgl: document.getElementById('beli-tgl').value,
-                    pemasok: document.getElementById('beli-pemasok').value,
-                    netto: res.netto, total: res.total
-                });
-                db.pembelian.push(data);
-            } 
-            else if(type === 'lossis') {
-                const tipe = document.getElementById('lossis-tipe').value;
-                const kg = parseFloat(document.getElementById('lossis-kg').value);
-                Object.assign(data, {
-                    tgl: document.getElementById('lossis-tgl').value,
-                    tipe, kg, netto: tipe === 'kurang' ? -kg : kg,
-                    ket: document.getElementById('lossis-ket').value
-                });
-                db.lossis.push(data);
-            }
-            else if(type === 'pengiriman') {
-                Object.assign(data, {
-                    tgl: document.getElementById('kirim-tgl').value,
-                    pks: document.getElementById('kirim-pks').value,
-                    netto: calcNetto('kirim'), status: 'Kirim'
-                });
-                db.pengiriman.push(data);
-            }
-            else if(type === 'penjualan') {
-                const idKirim = document.getElementById('jual-id-pengiriman').value;
-                const res = calcJual();
-                Object.assign(data, {
-                    idKirim, tgl: new Date().toISOString().split('T')[0],
-                    netto: res.netto, total: res.total
-                });
-                db.penjualan.push(data);
-                const kIdx = db.pengiriman.findIndex(x => x.id == idKirim);
-                if(kIdx !== -1) db.pengiriman[kIdx].status = 'Selesai';
-            }
-            else if(type === 'modal' || type === 'operasional') {
-                Object.assign(data, {
-                    tgl: document.getElementById(type+'-tgl').value,
-                    ket: document.getElementById(type+'-ket').value,
-                    amount: parseFloat(document.getElementById(type+'-amount').value)
-                });
-                db[type].push(data);
-            }
-
-            saveData();
-            e.target.reset();
-            initDates();
-            notify("Data Berhasil Disimpan");
-        }
-
-        function deleteRecord(type, id) {
-            if(!confirm("Hapus data?")) return;
-            if(type === 'penjualan') {
-                const item = db.penjualan.find(x => x.id == id);
-                if(item) {
-                    const kIdx = db.pengiriman.findIndex(x => x.id == item.idKirim);
-                    if(kIdx !== -1) db.pengiriman[kIdx].status = 'Kirim';
-                }
-            }
-            db[type] = db[type].filter(x => x.id !== id);
-            saveData();
+            ['b-date', 'l-date', 'j-date', 'c-date'].forEach(id => {
+                document.getElementById(id).value = today;
+            });
         }
 
         function saveData() {
-            localStorage.setItem('tbs_pro_multi_device', JSON.stringify(db));
-            updateUI();
+            localStorage.setItem('sawit_erp_data_v2', JSON.stringify(dataStore));
+            renderAll();
+            updateDOSelect();
+            if(!document.getElementById('page-rekap').classList.contains('hidden')) renderRekap();
         }
 
-        function updateDashboard() {
-            const sum = (arr, key) => (arr || []).reduce((a, b) => a + (b[key] || 0), 0);
-            const totalBeli = sum(db.pembelian, 'total');
-            const totalJual = sum(db.penjualan, 'total');
-            const totalOps = sum(db.operasional, 'amount');
-            const totalModal = sum(db.modal, 'amount');
-            
-            const totalKgBeli = sum(db.pembelian, 'netto');
-            const totalKgKirim = sum(db.pengiriman, 'netto');
-            const totalKgLossis = sum(db.lossis, 'netto');
-            const stokFisik = totalKgBeli - totalKgKirim + totalKgLossis;
+        function navTo(id) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-' + id).classList.remove('hidden');
+            document.getElementById('nav-' + id).classList.add('active');
+            if(id === 'rekap') renderRekap();
+        }
 
-            let totalSusut = 0;
-            db.penjualan.forEach(j => {
-                const k = db.pengiriman.find(p => p.id == j.idKirim);
-                if(k) totalSusut += (k.netto - j.netto);
+        function showToast(msg) {
+            const toast = document.getElementById('custom-toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- CALCULATIONS ---
+        function hitungBeli() {
+            const b = parseFloat(document.getElementById('b-bruto').value) || 0;
+            const t = parseFloat(document.getElementById('b-tara').value) || 0;
+            const p = parseFloat(document.getElementById('b-persen').value) || 0;
+            const h = parseFloat(document.getElementById('b-harga').value) || 0;
+            const netto = (b - t) - Math.round((b - t) * (p / 100));
+            const total = netto * h;
+            document.getElementById('res-netto').innerText = netto.toLocaleString();
+            document.getElementById('res-total').innerText = 'Rp ' + total.toLocaleString();
+            return { netto, total };
+        }
+
+        function hitungLogistik() {
+            const b = parseFloat(document.getElementById('l-bruto').value) || 0;
+            const t = parseFloat(document.getElementById('l-tara').value) || 0;
+            const netto = b - t;
+            document.getElementById('res-log-netto').innerText = netto.toLocaleString();
+            return { netto };
+        }
+
+        function hitungJual() {
+            const b = parseFloat(document.getElementById('j-bruto').value) || 0;
+            const t = parseFloat(document.getElementById('j-tara').value) || 0;
+            const p = parseFloat(document.getElementById('j-persen').value) || 0;
+            const h = parseFloat(document.getElementById('j-harga').value) || 0;
+            const netto = (b - t) - Math.round((b - t) * (p / 100));
+            const total = netto * h;
+            document.getElementById('res-jual-netto').innerText = netto.toLocaleString();
+            document.getElementById('res-jual-total').innerText = 'Rp ' + total.toLocaleString();
+
+            const doRefId = document.getElementById('j-do-ref').value;
+            if(doRefId) {
+                const doData = dataStore.find(d => d.id == doRefId);
+                const pksNettoBruto = (b - t);
+                const diff = doData.netto - pksNettoBruto;
+                const diffPerc = ((diff / doData.netto) * 100).toFixed(2);
+                document.getElementById('diff-box').classList.remove('hidden');
+                document.getElementById('diff-kg').innerText = diff.toLocaleString() + ' Kg';
+                document.getElementById('diff-percent').innerText = diffPerc + '%';
+            } else {
+                document.getElementById('diff-box').classList.add('hidden');
+            }
+            return { netto, total };
+        }
+
+        function autoFillDO() {
+            const id = document.getElementById('j-do-ref').value;
+            if(!id) return;
+            const d = dataStore.find(x => x.id == id);
+            document.getElementById('j-pabrik').value = d.pks;
+            document.getElementById('j-do-num').value = d.do;
+            hitungJual();
+        }
+
+        function updateDOSelect() {
+            const sel = document.getElementById('j-do-ref');
+            sel.innerHTML = '<option value="">-- Hubungkan DO --</option>';
+            const claimedIds = dataStore.filter(d => d.tipe === 'JUAL' && d.refId).map(d => d.refId);
+            dataStore.filter(d => d.tipe === 'LOGISTIK' && !claimedIds.includes(d.id.toString())).forEach(d => {
+                sel.insertAdjacentHTML('beforeend', `<option value="${d.id}">${d.do} (${d.netto}Kg)</option>`);
+            });
+        }
+
+        // --- CRUD ---
+        function simpan(tipe) {
+            let p = { tipe, id: Date.now() };
+            
+            if(tipe === 'BELI') {
+                const r = hitungBeli();
+                p.nama = document.getElementById('b-nama').value || 'Pemasok Umum';
+                p.netto = r.netto; p.total = r.total; p.ts = new Date(document.getElementById('b-date').value).getTime();
+            } else if(tipe === 'LOGISTIK') {
+                const r = hitungLogistik();
+                p.do = document.getElementById('l-do').value;
+                p.pks = document.getElementById('l-pks').value;
+                p.nama = `Kirim: ${p.do}`;
+                p.netto = r.netto; p.total = 0; p.ts = new Date(document.getElementById('l-date').value).getTime();
+            } else if(tipe === 'JUAL') {
+                const r = hitungJual();
+                p.refId = document.getElementById('j-do-ref').value;
+                p.do = document.getElementById('j-do-num').value;
+                p.nama = `Klaim: ${p.do}`;
+                p.netto = r.netto; p.total = r.total; p.ts = new Date(document.getElementById('j-date').value).getTime();
+                if(p.refId) {
+                    const doData = dataStore.find(d => d.id == p.refId);
+                    const pksMurni = (parseFloat(document.getElementById('j-bruto').value) || 0) - (parseFloat(document.getElementById('j-tara').value) || 0);
+                    p.susut = doData.netto - pksMurni;
+                }
+            } else {
+                p.nama = document.getElementById('c-ket').value || 'Biaya';
+                p.total = parseFloat(document.getElementById('c-nominal').value) || 0;
+                p.netto = 0; p.ts = new Date(document.getElementById('c-date').value).getTime();
+            }
+
+            dataStore.unshift(p);
+            saveData();
+            showToast("Transaksi Berhasil Dicatat");
+            setTodayDates();
+        }
+
+        function openDeleteModal(id) {
+            pendingDeleteIdx = id;
+            document.getElementById('delete-modal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+        }
+
+        document.getElementById('confirm-delete-btn').onclick = () => {
+            dataStore = dataStore.filter(d => d.id !== pendingDeleteIdx);
+            saveData();
+            closeDeleteModal();
+            showToast("Data dihapus");
+        };
+
+        // --- RENDERING ---
+        function renderAll() {
+            const table = document.getElementById('table-log');
+            table.innerHTML = '';
+            
+            let stok=0, otw=0, exp=0, beliRp=0, jualRp=0, susut=0;
+            const claimed = dataStore.filter(d => d.tipe === 'JUAL').map(d => d.refId);
+
+            dataStore.forEach(d => {
+                const dateStr = new Date(d.ts).toLocaleDateString('id-ID');
+                const rowClass = d.tipe === 'BELI' ? 'text-emerald-600' : (d.tipe === 'JUAL' ? 'text-indigo-600' : '');
+
+                if(d.tipe === 'BELI') { stok += d.netto; beliRp += d.total; }
+                if(d.tipe === 'LOGISTIK') { stok -= d.netto; if(!claimed.includes(d.id.toString())) otw += d.netto; }
+                if(d.tipe === 'JUAL') { jualRp += d.total; if(d.susut) susut += d.susut; }
+                if(d.tipe === 'BIAYA') { exp += d.total; }
+
+                table.insertAdjacentHTML('beforeend', `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-4 text-[10px] font-bold text-slate-400">${dateStr}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded-[4px] text-[9px] font-black uppercase ${d.tipe==='BELI'?'bg-emerald-100 text-emerald-700':d.tipe==='JUAL'?'bg-indigo-100 text-indigo-700':'bg-slate-100'}">${d.tipe}</span></td>
+                    <td class="p-4 font-bold">${d.nama}</td>
+                    <td class="p-4 text-right font-medium">${d.netto ? d.netto.toLocaleString() : '-'}</td>
+                    <td class="p-4 text-right text-amber-600 font-bold">${d.susut ? d.susut.toLocaleString() : '-'}</td>
+                    <td class="p-4 text-right font-black ${rowClass}">Rp ${d.total.toLocaleString()}</td>
+                    <td class="p-4 text-center"><button onclick="openDeleteModal(${d.id})" class="text-slate-300 hover:text-rose-500"><i class="fas fa-trash-alt"></i></button></td>
+                </tr>`);
             });
 
-            document.getElementById('dash-modal').innerText = formatRp(totalModal - totalBeli + totalJual - totalOps);
-            document.getElementById('dash-stok-akhir').innerText = Math.round(stokFisik).toLocaleString() + ' Kg';
-            document.getElementById('dash-do-total').innerText = totalKgKirim.toLocaleString() + ' Kg';
-            document.getElementById('dash-profit').innerText = formatRp(totalJual - totalBeli - totalOps);
+            document.getElementById('stok-val').innerText = stok.toLocaleString();
+            document.getElementById('otw-val').innerText = otw.toLocaleString();
+            document.getElementById('biaya-val').innerText = 'Rp ' + exp.toLocaleString();
+            document.getElementById('shrink-val').innerText = susut.toLocaleString() + ' Kg';
+            document.getElementById('profit-val').innerText = 'Rp ' + (jualRp - beliRp - exp).toLocaleString();
 
-            document.getElementById('lr-penjualan').innerText = formatRp(totalJual);
-            document.getElementById('lr-hpp').innerText = formatRp(totalBeli);
-            document.getElementById('lr-ops').innerText = formatRp(totalOps);
-            document.getElementById('lr-bersih').innerText = formatRp(totalJual - totalBeli - totalOps);
-            document.getElementById('total-susut').innerText = Math.round(totalSusut).toLocaleString() + ' Kg';
-            document.getElementById('total-lossis').innerText = Math.round(totalKgLossis).toLocaleString() + ' Kg';
+            updateChart();
         }
 
-        function updateUI() {
-            const render = (id, data, tpl) => {
-                const el = document.getElementById(id);
-                if(el) el.innerHTML = (data || []).slice().reverse().map(x => tpl(x)).join('');
-            };
+        function renderRekap() {
+            const container = document.getElementById('rekap-container');
+            const targetYear = document.getElementById('rekap-year').value;
+            container.innerHTML = '';
 
-            render('list-pembelian', db.pembelian, x => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-4">${x.tgl}</td>
-                    <td class="p-4 font-bold">${x.pemasok}</td>
-                    <td class="p-4">${Math.round(x.netto).toLocaleString()} Kg</td>
-                    <td class="p-4 font-bold text-emerald-600">${formatRp(x.total)}</td>
-                    <td class="p-4 text-center"><button onclick="deleteRecord('pembelian', ${x.id})" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                </tr>
-            `);
-
-            render('list-lossis', db.lossis, x => `
-                <tr>
-                    <td class="p-4">${x.tgl}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded text-[9px] font-bold uppercase ${x.tipe==='kurang'?'bg-red-50 text-red-600':'bg-blue-50 text-blue-600'}">${x.tipe}</span></td>
-                    <td class="p-4 font-bold">${x.netto.toLocaleString()} Kg</td>
-                    <td class="p-4 opacity-50">${x.ket || '-'}</td>
-                    <td class="p-4 text-right"><button onclick="deleteRecord('lossis', ${x.id})" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                </tr>
-            `);
-
-            render('list-pengiriman', db.pengiriman, x => `
-                <tr>
-                    <td class="p-4">${x.tgl}</td>
-                    <td class="p-4 font-bold">${x.pks}</td>
-                    <td class="p-4">${x.netto.toLocaleString()} Kg</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded text-[9px] font-bold ${x.status==='Selesai'?'bg-emerald-50 text-emerald-600':'bg-orange-50 text-orange-600'}">${x.status}</span></td>
-                    <td class="p-4 text-right"><button onclick="deleteRecord('pengiriman', ${x.id})" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                </tr>
-            `);
-
-            render('list-penjualan', db.penjualan, x => `
-                <tr>
-                    <td class="p-4">${x.tgl}</td>
-                    <td class="p-4 font-bold text-indigo-600">${Math.round(x.netto).toLocaleString()} Kg</td>
-                    <td class="p-4 font-bold text-emerald-600">${formatRp(x.total)}</td>
-                    <td class="p-4 text-right"><button onclick="deleteRecord('penjualan', ${x.id})" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                </tr>
-            `);
-
-            render('list-modal', db.modal, x => `<tr><td class="p-3">${x.tgl}</td><td class="p-3">${x.ket}</td><td class="p-3 text-right font-bold text-emerald-600">${formatRp(x.amount)}</td><td class="p-3 text-right"><button onclick="deleteRecord('modal', ${x.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="x-circle" class="w-4 h-4"></i></button></td></tr>`);
-            render('list-operasional', db.operasional, x => `<tr><td class="p-3">${x.tgl}</td><td class="p-3">${x.ket}</td><td class="p-3 text-right font-bold text-red-600">${formatRp(x.amount)}</td><td class="p-3 text-right"><button onclick="deleteRecord('operasional', ${x.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="x-circle" class="w-4 h-4"></i></button></td></tr>`);
-
-            updateDashboard();
-            lucide.createIcons();
-        }
-
-        function exportToExcel() {
-            // Cek apakah ada data sama sekali
-            const hasData = Object.values(db).some(arr => arr.length > 0);
-            if (!hasData) {
-                notify("Gagal: Belum ada data untuk diekspor!");
-                return;
-            }
-
-            try {
-                const wb = XLSX.utils.book_new();
-                let addedAny = false;
-
-                Object.keys(db).forEach(key => {
-                    if (db[key] && db[key].length > 0) {
-                        const ws = XLSX.utils.json_to_sheet(db[key]);
-                        XLSX.utils.book_append_sheet(wb, ws, key.toUpperCase());
-                        addedAny = true;
-                    }
+            // Group by Month
+            for (let m = 11; m >= 0; m--) {
+                const monthData = dataStore.filter(d => {
+                    const dt = new Date(d.ts);
+                    return dt.getMonth() === m && dt.getFullYear().toString() === targetYear;
                 });
 
-                if (addedAny) {
-                    XLSX.writeFile(wb, `TBS_PRO_Full_Report.xlsx`);
-                    notify("Laporan Diunduh!");
-                } else {
-                    notify("Gagal: Tidak ada sheet yang valid!");
-                }
-            } catch (err) {
-                console.error("Export error:", err);
-                notify("Terjadi kesalahan saat mengekspor data.");
+                if (monthData.length === 0) continue;
+
+                let mBeli = 0, mJual = 0, mBiaya = 0, mNettoBeli = 0, mNettoJual = 0, mSusut = 0;
+                monthData.forEach(d => {
+                    if(d.tipe === 'BELI') { mBeli += d.total; mNettoBeli += d.netto; }
+                    if(d.tipe === 'JUAL') { mJual += d.total; mNettoJual += d.netto; if(d.susut) mSusut += d.susut; }
+                    if(d.tipe === 'BIAYA') { mBiaya += d.total; }
+                });
+
+                const profit = mJual - mBeli - mBiaya;
+
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="glass-panel p-6 rounded-[2rem] shadow-sm border-l-8 ${profit >= 0 ? 'border-emerald-500' : 'border-rose-500'}">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                            <div>
+                                <h3 class="text-xl font-black text-slate-800">${months[m]} ${targetYear}</h3>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ringkasan Performa Bulanan</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-bold text-slate-400 block uppercase">Laba Bersih</span>
+                                <span class="text-2xl font-black ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">Rp ${profit.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-slate-50 p-4 rounded-2xl">
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Total Beli</p>
+                                <p class="font-bold">Rp ${mBeli.toLocaleString()}</p>
+                                <p class="text-[10px] text-slate-500">${mNettoBeli.toLocaleString()} Kg</p>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-2xl">
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Total Jual</p>
+                                <p class="font-bold">Rp ${mJual.toLocaleString()}</p>
+                                <p class="text-[10px] text-slate-500">${mNettoJual.toLocaleString()} Kg</p>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-2xl">
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Operasional</p>
+                                <p class="font-bold text-rose-600">Rp ${mBiaya.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                                <p class="text-[9px] font-bold text-amber-600 uppercase">Total Susut</p>
+                                <p class="font-bold text-amber-700">${mSusut.toLocaleString()} Kg</p>
+                                <p class="text-[10px] text-amber-500">Logistik PKS</p>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            if (container.innerHTML === '') {
+                container.innerHTML = '<div class="text-center py-20 text-slate-400 font-bold">Tidak ada data untuk tahun ini.</div>';
             }
         }
+
+        let mainChart;
+        function updateChart() {
+            const ctx = document.getElementById('chartView').getContext('2d');
+            const last7Days = [...Array(7)].map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                return d.toISOString().split('T')[0];
+            }).reverse();
+
+            const dataset = last7Days.map(date => {
+                return dataStore
+                    .filter(d => d.tipe === 'BELI' && new Date(d.ts).toISOString().split('T')[0] === date)
+                    .reduce((acc, curr) => acc + curr.netto, 0);
+            });
+
+            if(mainChart) mainChart.destroy();
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: last7Days.map(d => d.split('-').reverse().slice(0,2).join('/')),
+                    datasets: [{ label: 'Tonase (Kg)', data: dataset, backgroundColor: '#10b981', borderRadius: 10 }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(dataStore.map(d => ({
+                Tanggal: new Date(d.ts).toLocaleDateString(),
+                Tipe: d.tipe,
+                Nama: d.nama,
+                Netto: d.netto,
+                Susut: d.susut || 0,
+                Total: d.total
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+            XLSX.writeFile(wb, "PalmCore_ERP_FullReport.xlsx");
+        }
+
+        window.onload = () => {
+            setTodayDates();
+            renderAll();
+            updateDOSelect();
+        };
     </script>
 </body>
 </html>
